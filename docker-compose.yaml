@@ -1,0 +1,21 @@
+services:
+  secret-relay:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: secret-relay:dev
+    environment:
+      - DATABASE_HOST=redis
+      - DATABASE_PORT=6379
+    depends_on:
+      redis:
+        condition: service_healthy
+
+  redis:
+    image: redis:alpine
+    ports:
+      - 6379:6379
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 2s
+      retries: 10
