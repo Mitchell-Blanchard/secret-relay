@@ -2,66 +2,71 @@ package main
 
 import (
 	"context"
+	"fmt"
 	"log/slog"
 	"os"
-	"strconv"
 
-	"github.com/redis/go-redis/v9"
+	"github.com/mitchell.blanchard/secret-relay/internal/database"
+	"github.com/mitchell.blanchard/secret-relay/internal/secret"
 )
 
-type config struct {
-	dbHost   string
-	dbPort   string
-	dbPass   string
-	database int
+type store interface {
+	Save(ctx context.Context, s secret.Secret) error
+	Take(ctx context.Context, key string) (secret.Secret, error)
 }
 
-func getEnv(e string, d string) string {
-	if env := os.Getenv(e); env != "" {
-		return env
+type app struct {
+	logger *slog.Logger
+	store  store
+}
+
+type config struct {
+	dbHost string
+	dbPort string
+	dbPass string
+}
+
+func getEnv(env string, d string) string {
+	if envVar := os.Getenv(env); envVar != "" {
+		return envVar
 	}
 	return d
 }
 
-func initConfig() (config, error) {
-	var cfg config
+func newConfig() config {
+	return config{
+		dbHost: getEnv("DATABASE_HOST", "localhost"),
+		dbPort: getEnv("DATABASE_PORT", "6379"),
+		dbPass: getEnv("DATABASE_PASS", ""),
+	}
+}
 
-	var err error
-	cfg.dbHost = getEnv("DATABASE_HOST", "localhost")
-	cfg.dbPort = getEnv("DATABASE_PORT", "6379")
-	cfg.dbPass = getEnv("DATABASE_PASS", "")
-	cfg.database, err = strconv.Atoi(getEnv("DATABASE_DB", "0"))
+func newStore(ctx context.Context) (store, error) {
+	cfg := newConfig()
+	dbAddr := cfg.dbHost + ":" + cfg.dbPort
+
+	conn, err := database.NewRedis(ctx, dbAddr, cfg.dbPass)
 	if err != nil {
-		return config{}, err
+		return nil, err
 	}
 
-	return cfg, nil
+	return conn, nil
 }
 
 func main() {
 	ctx := context.Background()
 	slogger := slog.New(slog.NewTextHandler(os.Stdout, nil))
 
-	cfg, err := initConfig()
+	dataStore, err := newStore(ctx)
 	if err != nil {
-		slogger.Error("failed to initialise config", "error", err)
+		slogger.Error("unable to create store: ", "error", err)
 		os.Exit(1)
 	}
 
-	databaseEndpoint := cfg.dbHost + ":" + cfg.dbPort
-	slogger.Info("connecting to database", "endpoint", databaseEndpoint)
-
-	rdb := redis.NewClient(&redis.Options{
-		Addr:     databaseEndpoint,
-		Password: cfg.dbPass,
-		DB:       cfg.database,
-	})
-	defer rdb.Close()
-
-	if _, err := rdb.Ping(ctx).Result(); err != nil {
-		slogger.Error("error connecting to database", "error", err)
-		os.Exit(1)
+	app := app{
+		logger: slogger,
+		store:  dataStore,
 	}
 
-	slogger.Info("successfully connected to database", "endpoint", databaseEndpoint)
+	fmt.Println(app)
 }
