@@ -29,9 +29,9 @@ type config struct {
 	serverPort string
 }
 
-func getEnv(envVarName string, fallback string) string {
-	if setVar := os.Getenv(envVarName); setVar != "" {
-		return setVar
+func getEnv(key string, fallback string) string {
+	if v := os.Getenv(key); v != "" {
+		return v
 	}
 	return fallback
 }
