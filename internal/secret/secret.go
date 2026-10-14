@@ -24,17 +24,17 @@ const (
 	maxTTL = 7 * 24 * time.Hour
 )
 
-func New(value string, TTL time.Duration) (Secret, error) {
+func New(value string, ttl time.Duration) (Secret, error) {
 	if value == "" {
 		return Secret{}, ErrEmptyValue
 	}
-	if TTL < minTTL || TTL > maxTTL {
+	if ttl < minTTL || ttl > maxTTL {
 		return Secret{}, ErrInvalidTTL
 	}
 
 	return Secret{
 		Key:   uuid.NewString(),
 		Value: value,
-		TTL:   TTL,
+		TTL:   ttl,
 	}, nil
 }

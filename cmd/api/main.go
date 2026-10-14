@@ -2,11 +2,12 @@ package main
 
 import (
 	"context"
-	"fmt"
 	"log/slog"
+	"net/http"
 	"os"
+	"time"
 
-	"github.com/mitchell.blanchard/secret-relay/internal/database"
+	"github.com/mitchell.blanchard/secret-relay/internal/datastore"
 	"github.com/mitchell.blanchard/secret-relay/internal/secret"
 )
 
@@ -15,58 +16,79 @@ type store interface {
 	Take(ctx context.Context, key string) (secret.Secret, error)
 }
 
-type app struct {
+type application struct {
 	logger *slog.Logger
 	store  store
 }
 
 type config struct {
-	dbHost string
-	dbPort string
-	dbPass string
+	dbHost     string
+	dbPort     string
+	dbPass     string
+	serverHost string
+	serverPort string
 }
 
-func getEnv(env string, d string) string {
-	if envVar := os.Getenv(env); envVar != "" {
-		return envVar
+func getEnv(key string, fallback string) string {
+	if v := os.Getenv(key); v != "" {
+		return v
 	}
-	return d
+	return fallback
 }
 
 func newConfig() config {
 	return config{
-		dbHost: getEnv("DATABASE_HOST", "localhost"),
-		dbPort: getEnv("DATABASE_PORT", "6379"),
-		dbPass: getEnv("DATABASE_PASS", ""),
+		dbHost:     getEnv("DATABASE_HOST", "localhost"),
+		dbPort:     getEnv("DATABASE_PORT", "6379"),
+		dbPass:     getEnv("DATABASE_PASS", ""),
+		serverHost: getEnv("SERVER_HOST", ""),
+		serverPort: getEnv("SERVER_PORT", "8080"),
 	}
 }
 
-func newStore(ctx context.Context) (store, error) {
-	cfg := newConfig()
+func newStore(ctx context.Context, cfg config) (store, error) {
 	dbAddr := cfg.dbHost + ":" + cfg.dbPort
 
-	conn, err := database.NewRedis(ctx, dbAddr, cfg.dbPass)
+	ds, err := datastore.NewRedis(ctx, dbAddr, cfg.dbPass)
 	if err != nil {
 		return nil, err
 	}
 
-	return conn, nil
+	return ds, nil
 }
 
 func main() {
 	ctx := context.Background()
 	slogger := slog.New(slog.NewTextHandler(os.Stdout, nil))
 
-	dataStore, err := newStore(ctx)
+	cfg := newConfig()
+
+	st, err := newStore(ctx, cfg)
 	if err != nil {
-		slogger.Error("unable to create store: ", "error", err)
+		slogger.Error("unable to create store", "error", err)
 		os.Exit(1)
 	}
 
-	app := app{
+	app := application{
 		logger: slogger,
-		store:  dataStore,
+		store:  st,
 	}
 
-	fmt.Println(app)
+	err = app.start(cfg)
+	slogger.Error("server stopped", "error", err)
+	os.Exit(1)
+}
+
+func (app *application) start(cfg config) error {
+	address := cfg.serverHost + ":" + cfg.serverPort
+
+	srv := &http.Server{
+		Addr:              address,
+		Handler:           app.routes(),
+		ReadHeaderTimeout: 5 * time.Second,
+		ReadTimeout:       10 * time.Second,
+		WriteTimeout:      10 * time.Second,
+		IdleTimeout:       60 * time.Second,
+	}
+	return srv.ListenAndServe()
 }

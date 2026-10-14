@@ -1,4 +1,4 @@
-package database
+package datastore
 
 import (
 	"context"
@@ -14,7 +14,7 @@ type Redis struct {
 }
 
 func NewRedis(ctx context.Context, addr string, pass string) (*Redis, error) {
-	rdb := redis.NewClient(&redis.Options{
+	client := redis.NewClient(&redis.Options{
 		Addr:     addr,
 		Password: pass,
 		DB:       0,
@@ -22,17 +22,17 @@ func NewRedis(ctx context.Context, addr string, pass string) (*Redis, error) {
 
 	ctx, cancel := context.WithTimeout(ctx, 5*time.Second)
 	defer cancel()
-	if err := rdb.Ping(ctx).Err(); err != nil {
-		rdb.Close()
-		return nil, fmt.Errorf("connecting to redis at %s: %w", addr, err)
+	if err := client.Ping(ctx).Err(); err != nil {
+		client.Close()
+		return nil, fmt.Errorf("connecting to redis: %w", err)
 	}
 
-	return &Redis{client: rdb}, nil
+	return &Redis{client: client}, nil
 }
 
 func (r *Redis) Save(ctx context.Context, s secret.Secret) error {
 	if err := r.client.Set(ctx, s.Key, s.Value, s.TTL).Err(); err != nil {
-		return fmt.Errorf("saving secret %s: %w", s.Key, err)
+		return fmt.Errorf("saving secret: %w", err)
 	}
 	return nil
 }
