@@ -16,7 +16,7 @@ type store interface {
 	Take(ctx context.Context, key string) (secret.Secret, error)
 }
 
-type app struct {
+type application struct {
 	logger *slog.Logger
 	store  store
 }
@@ -69,7 +69,7 @@ func main() {
 		os.Exit(1)
 	}
 
-	app := app{
+	app := application{
 		logger: slogger,
 		store:  st,
 	}
@@ -79,7 +79,7 @@ func main() {
 	os.Exit(1)
 }
 
-func (app *app) start(cfg config) error {
+func (app *application) start(cfg config) error {
 	address := cfg.serverHost + ":" + cfg.serverPort
 
 	srv := &http.Server{

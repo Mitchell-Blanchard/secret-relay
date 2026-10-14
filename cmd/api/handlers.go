@@ -15,7 +15,7 @@ type createSecretRequest struct {
 	TTLSeconds int    `json:"ttl_seconds"`
 }
 
-func (app *app) handleCreateSecret(w http.ResponseWriter, r *http.Request) {
+func (app *application) handleCreateSecret(w http.ResponseWriter, r *http.Request) {
 	var req createSecretRequest
 
 	dec := json.NewDecoder(r.Body)
