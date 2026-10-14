@@ -19,3 +19,7 @@ services:
       test: ["CMD", "redis-cli", "ping"]
       interval: 2s
       retries: 10
+
+  curl:
+    image: curlimages/curl:8.10.1
+    entrypoint: ["sleep", "infinity"]

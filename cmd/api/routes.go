@@ -1,11 +1,12 @@
 package main
 
 import (
-	"fmt"
 	"net/http"
 )
 
-func routes() {
+func (app *app) routes() *http.ServeMux {
 	mux := http.NewServeMux()
-	fmt.Print(mux)
+	mux.HandleFunc("POST /secrets", app.handleCreateSecret)
+
+	return mux
 }
