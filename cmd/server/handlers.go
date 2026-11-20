@@ -22,11 +22,11 @@ func (app *application) handleCreateSecret(w http.ResponseWriter, r *http.Reques
 	dec.DisallowUnknownFields()
 
 	err := dec.Decode(&req)
-	if errors.Is(err, io.EOF) {
-		app.clientError(w, r, http.StatusBadRequest, "request body must not be empty", err)
-		return
-	}
 	if err != nil {
+		if errors.Is(err, io.EOF) {
+			app.clientError(w, r, http.StatusBadRequest, "request body must not be empty", err)
+			return
+		}
 		app.clientError(w, r, http.StatusBadRequest, "invalid request body", err)
 		return
 	}
@@ -54,7 +54,7 @@ func (app *application) handleCreateSecret(w http.ResponseWriter, r *http.Reques
 
 	resp := map[string]string{"key": sec.Key}
 	if err := json.NewEncoder(w).Encode(resp); err != nil {
-		app.logger.Warn("writing response", "error", err)
+		app.logger.Warn("writing response", "error", err, "method", r.Method, "path", r.URL.Path)
 	}
 }
 
@@ -75,6 +75,6 @@ func (app *application) handleTakeSecret(w http.ResponseWriter, r *http.Request)
 
 	resp := map[string]string{"secret": sec.Value}
 	if err := json.NewEncoder(w).Encode(resp); err != nil {
-		app.logger.Warn("writing response", "error", err)
+		app.logger.Warn("writing response", "error", err, "method", r.Method, "path", r.URL.Path)
 	}
 }

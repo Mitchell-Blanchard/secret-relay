@@ -40,12 +40,16 @@ func (r *Redis) Save(ctx context.Context, s secret.Secret) error {
 
 func (r *Redis) Take(ctx context.Context, key string) (secret.Secret, error) {
 	sec, err := r.client.GetDel(ctx, key).Result()
-	if errors.Is(err, redis.Nil) {
-		return secret.Secret{}, secret.ErrNotFound
-	}
 	if err != nil {
+		if errors.Is(err, redis.Nil) {
+			return secret.Secret{}, secret.ErrNotFound
+		}
 		return secret.Secret{}, fmt.Errorf("taking secret: %w", err)
 	}
 
 	return secret.Secret{Key: key, Value: sec}, nil
+}
+
+func (r *Redis) Close() {
+	r.client.Close()
 }

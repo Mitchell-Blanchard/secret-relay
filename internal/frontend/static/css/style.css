@@ -1,0 +1,35 @@
+body {
+  margin: 0;
+  font-family: Monaco, monospace;
+  background-color: darkslategray;
+}
+
+.secret-page {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  min-height: 100vh;
+}
+
+.secret-section {
+  display: flex;
+  align-items: center;
+  flex-direction: column;
+  background-color: gray;
+  padding: 0 20px 10px;
+  border: thick double black;
+  border-radius: 20px;
+}
+
+.secret-input {
+  margin-bottom: 10px;
+  background-color: darkgrey;
+  border: thick groove white;
+  width: 100%;
+  max-width: 50ch;
+}
+
+.large-button {
+  font-size: 16px;
+  padding: 0.2em 0.5em;
+}

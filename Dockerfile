@@ -7,7 +7,7 @@ RUN go mod download
 
 COPY . .
 
-RUN CGO_ENABLED=0 go build -o main ./cmd/api
+RUN CGO_ENABLED=0 go build -o main ./cmd/server
 
 FROM gcr.io/distroless/static-debian12:nonroot
 
